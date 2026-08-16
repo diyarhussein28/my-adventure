@@ -1,119 +1,73 @@
-using System.Collections.Generic;
+using System;
 using UnityEngine;
+using SeasOfLegends.Data;
 
-/// <summary>
-/// Manages combo input buffering and combo string execution.
-/// Works with CombatSystem to determine which attack to perform based on timed inputs.
-/// </summary>
-public class ComboManager
+namespace SeasOfLegends.Combat
 {
-    // Singleton pattern
-    private static ComboManager instance;
-    public static ComboManager Instance
-    {
-        get
-        {
-            if (instance == null)
-                instance = new ComboManager();
-            return instance;
-        }
-    }
-
-    private ComboManager() { } // Prevent instantiation
-
-    // Combo buffer settings
-    [System.Serializable]
-    public class ComboInput
-    {
-        public KeyCode key; // Or InputAction reference
-        public float timeWindow; // How long after previous input this counts
-    }
-
-    // Current combo being built
-    private List<KeyCode> currentBuffer = new List<KeyCode>();
-    private float lastInputTime;
-    private const float COMBO_RESET_TIME = 1.0f; // Time to reset combo if no input
-
-    // Define your combos here or load from ScriptableObject
-    private Dictionary<KeyCode[], string> comboLibrary = new Dictionary<KeyCode[], string>()
-    {
-        { new KeyCode[] { KeyCode.Mouse0, KeyCode.Mouse0, KeyCode.Mouse0 }, "BasicCombo" },
-        { new KeyCode[] { KeyCode.Mouse0, KeyCode.Mouse0, KeyCode.Space }, "LauncherCombo" },
-        { new KeyCode[] { KeyCode.Mouse0, KeyCode.LeftShift, KeyCode.Mouse0 }, "DashAttackCombo" }
-        // Add more combos as needed
-    };
-
     /// <summary>
-    /// Call this from PlayerController's HandleInput when attack button is pressed.
-    /// Returns true if the input completes a known combo.
+    /// Per-combatant combo buffer. It records one future attack during active/recovery frames
+    /// and validates that the requested input matches the next authored attack in the sequence.
     /// </summary>
-    public bool ProcessAttackInput(KeyCode attackKey)
+    public sealed class ComboManager : MonoBehaviour
     {
-        float timeSinceLast = Time.time - lastInputTime;
+        [SerializeField] private ComboDefinition[] combos;
+        private ComboDefinition activeCombo;
+        private int nextIndex;
+        private AttackInput? bufferedInput;
+        private float bufferExpiry;
 
-        // Reset buffer if too much time passed
-        if (timeSinceLast > COMBO_RESET_TIME)
+        public int CurrentHitCount { get; private set; }
+
+        public bool TryBegin(AttackInput input, out AttackDefinition attack)
         {
-            currentBuffer.Clear();
-        }
-
-        // Add current input
-        currentBuffer.Add(attackKey);
-        lastInputTime = Time.time;
-
-        // Check if current buffer matches any combo
-        foreach (var combo in comboLibrary)
-        {
-            if (currentBuffer.Count >= combo.Key.Length)
+            ResetCombo();
+            if (combos == null)
             {
-                bool matches = true;
-                for (int i = 0; i < combo.Key.Length; i++)
+                attack = null;
+                return false;
+            }
+            for (int i = 0; i < combos.Length; i++)
+            {
+                AttackDefinition[] sequence = combos[i].Sequence;
+                if (sequence != null && sequence.Length > 0 && sequence[0] != null && sequence[0].Input == input)
                 {
-                    // Check the last n inputs match the combo
-                    if (currentBuffer[currentBuffer.Count - combo.Key.Length + i] != combo.Key[i])
-                    {
-                        matches = false;
-                        break;
-                    }
-                }
-                if (matches)
-                {
-                    // Found a combo! Return the combo name or ID
-                    Debug.Log($"Combo executed: {combo.Value}");
-                    currentBuffer.Clear(); // Reset buffer after successful combo
+                    activeCombo = combos[i];
+                    nextIndex = 1;
+                    attack = sequence[0];
                     return true;
                 }
             }
+            attack = null;
+            return false;
         }
 
-        // Not a full combo yet, but could be part of one
-        return false;
-    }
-
-    /// <summary>
-    /// Called by CombatSystem to get the next attack in a sequence (for auto-combos).
-    /// </summary>
-    public string GetNextAttackInCombo(string currentAttack)
-    {
-        // Implement logic to return next attack based on current state
-        // For simplicity, we'll just return a hardcoded next step
-        switch (currentAttack)
+        public void Buffer(AttackInput input)
         {
-            case "BasicAttack1":
-                return "BasicAttack2";
-            case "BasicAttack2":
-                return "BasicAttack3";
-            default:
-                return null;
+            if (activeCombo == null) return;
+            bufferedInput = input;
+            bufferExpiry = Time.time + activeCombo.InputBufferSeconds;
         }
-    }
 
-    /// <summary>
-    /// Clear the combo buffer (e.g., on hit or block).
-    /// </summary>
-    public void ClearBuffer()
-    {
-        currentBuffer.Clear();
-        lastInputTime = 0f;
+        public bool TryContinue(out AttackDefinition attack)
+        {
+            attack = null;
+            if (activeCombo == null || bufferedInput == null || Time.time > bufferExpiry) return false;
+            AttackDefinition[] sequence = activeCombo.Sequence;
+            if (nextIndex >= sequence.Length || sequence[nextIndex] == null || sequence[nextIndex].Input != bufferedInput.Value) return false;
+            attack = sequence[nextIndex++];
+            bufferedInput = null;
+            return true;
+        }
+
+        public void RegisterSuccessfulHit() => CurrentHitCount++;
+
+        public void ResetCombo()
+        {
+            activeCombo = null;
+            nextIndex = 0;
+            bufferedInput = null;
+            bufferExpiry = 0f;
+            CurrentHitCount = 0;
+        }
     }
 }

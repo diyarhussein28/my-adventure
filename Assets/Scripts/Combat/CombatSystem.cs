@@ -1,205 +1,112 @@
-using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using SeasOfLegends.Core;
+using SeasOfLegends.Data;
+using SeasOfLegends.Player;
 
-/// <summary>
-/// Central combat manager. Handles hit detection, hit pause, combo logic, and combat states.
-/// Requires: References to main camera for shake effects (optional).
-/// </summary>
-public class CombatSystem : MonoBehaviour
+namespace SeasOfLegends.Combat
 {
-    // Singleton
-    public static CombatSystem Instance { get; private set; }
-
-    // References
-    private Camera mainCamera;
-
-    // Hit pause handling
-    private bool isInHitPause = false;
-    private float hitPauseTimer;
-    private Coroutine hitPauseCoroutine;
-
-    // Combat state
-    private bool isAttacking = false;
-    private bool isBlocking = false;
-    private bool isInExecution = false;
-
-    // Configuration
-    [Header("Hit Pause")]
-    [Tooltip("Default hit pause duration if not overridden by hitbox")]
-    public float defaultHitPauseDuration = 0.05f;
-    [Tooltip("How much to slow time during hit pause (0 = freeze, 1 = normal)")]
-    [Range(0f, 1f)] public float hitPauseTimeScale = 0.02f;
-
-    [Header("Camera Shake")]
-    public float shakeDuration = 0.1f;
-    public float shakeMagnitude = 0.3f;
-
-    private void Awake()
+    /// <summary>
+    /// Scene-level combat coordinator. Assign it to a persistent CombatSystems object. It maps
+    /// startup, active, and recovery phases from AttackDefinition to a weapon Hitbox.
+    /// </summary>
+    public sealed class CombatSystem : MonoBehaviour
     {
-        // Singleton pattern
-        if (Instance != null && Instance != this)
+        private sealed class AttackRuntime
         {
-            Destroy(gameObject);
-            return;
-        }
-        Instance = this;
-        DontDestroyOnLoad(gameObject); // Persist across scenes if needed
-
-        mainCamera = Camera.main;
-    }
-
-    /// <summary>
-    /// Called by AttackingState to start an attack sequence.
-    /// </summary>
-    public void StartAttack()
-    {
-        isAttacking = true;
-        ComboManager.Instance.ClearBuffer(); // Reset combo buffer on new attack chain
-    }
-
-    /// <summary>
-    /// Called to continue a combo after a successful hit.
-    /// </summary>
-    public void ContinueCombo()
-    {
-        // Logic to determine next attack in combo (could query animator or state)
-        // For now, we just signal that combo is active
-    }
-
-    /// <summary>
-    /// Called when attack sequence ends.
-    /// </summary>
-    public void EndAttack()
-    {
-        isAttacking = false;
-    }
-
-    /// <summary>
-    /// Set blocking state (called by BlockingState).
-    /// </summary>
-    public void SetBlocking(bool blocking)
-    {
-        isBlocking = blocking;
-    }
-
-    /// <summary>
-    /// Called when execution (finisher) starts.
-    /// </summary>
-    public void StartExecution()
-    {
-        isInExecution = true;
-        // Lock camera, disable player input, etc.
-    }
-
-    /// <summary>
-    /// Called when execution ends.
-    /// </summary>
-    public void EndExecution()
-    {
-        isInExecution = false;
-    }
-
-    /// <summary>
-    /// Main method to process a hit between a hitbox and hurtbox.
-    /// Called by Hurtbox.TakeHit.
-    /// </summary>
-    public void ProcessHit(Hitbox hitbox, Hurtbox hurtbox)
-    {
-        // Ignore if attacker and victim are same (or same team)
-        if (hitbox.transform.root == hurtbox.transform.root) return;
-
-        // Apply damage and effects
-        ApplyDamage(hitbox.damage, hurtbox.owner);
-        ApplyKnockback(hitbox, hurtbox.owner);
-        TriggerHitEffects(hitbox, hurtbox);
-
-        // Notify ComboManager that a hit occurred (for combo validation)
-        ComboManager.Instance.ClearBuffer(); // Or buffer for combo continuation? Design choice.
-    }
-
-    private void ApplyDamage(int damage, GameObject victim)
-    {
-        // Find health component on victim and apply damage
-        Health health = victim.GetComponent<Health>();
-        if (health != null)
-        {
-            health.TakeDamage(damage);
-        }
-        else
-        {
-            Debug.LogWarning($"No Health component on {victim.name}");
-        }
-    }
-
-    private void ApplyKnockback(Hitbox hitbox, GameObject victim)
-    {
-        Rigidbody victimRb = victim.GetComponent<Rigidbody>();
-        if (victimRb != null)
-        {
-            Vector3 knockbackDir = hitbox.knockbackDirection;
-            if (knockbackDir == Vector3.zero) knockbackDir = Vector3.up;
-            victimRb.AddForce(knockbackDir.normalized * hitbox.knockbackForce, ForceMode.Impulse);
-        }
-    }
-
-    private void TriggerHitEffects(Hitbox hitbox, Hurtbox hurtbox)
-    {
-        // Trigger hit pause if enabled
-        if (hitbox.canCauseHitPause && !isInHitPause)
-        {
-            float pauseDuration = hitbox.hitPauseDuration > 0 ? hitbox.hitPauseDuration : defaultHitPauseDuration;
-            StartHitPause(pauseDuration, hitbox.hitPauseTimeScale > 0 ? hitbox.hitPauseTimeScale : hitPauseTimeScale);
+            public AttackDefinition Attack;
+            public ComboManager Combo;
+            public Hitbox Hitbox;
+            public float StartedAt;
+            public bool IsArmed;
         }
 
-        // Trigger camera shake
-        if (mainCamera != null)
+        [SerializeField, Range(0f, 0.25f)] private float blockedHitStopSeconds = 0.025f;
+        [SerializeField, Range(0f, 1f)] private float hitStopTimeScale = 0.04f;
+        private readonly Dictionary<PlayerController, AttackRuntime> activeAttacks = new Dictionary<PlayerController, AttackRuntime>();
+        private Coroutine hitStopRoutine;
+
+        public bool TryStartAttack(PlayerController player, AttackInput input)
         {
-            StartCoroutine(CameraShake(shakeDuration, shakeMagnitude));
+            ComboManager combo = player.GetComponent<ComboManager>();
+            Hitbox hitbox = player.GetComponentInChildren<Hitbox>(true);
+            if (combo == null || hitbox == null || !combo.TryBegin(input, out AttackDefinition attack)) return false;
+            BeginRuntime(player, combo, hitbox, attack);
+            return true;
         }
 
-        // TODO: Spawn hit VFX at point of impact
-        // TODO: Play hit sound
-    }
-
-    private IEnumerator HitPauseRoutine(float duration, float timeScale)
-    {
-        isInHitPause = true;
-        float originalTimeScale = Time.timeScale;
-        float originalFixedDeltaTime = Time.fixedDeltaTime;
-
-        Time.timeScale = timeScale;
-        Time.fixedDeltaTime = Time.timeScale * 0.02f; // Keep fixed timestep consistent
-
-        yield return new WaitForSecondsRealtime(duration); // Use unscaled time for wait
-
-        // Restore
-        Time.timeScale = originalTimeScale;
-        Time.fixedDeltaTime = originalFixedDeltaTime;
-        isInHitPause = false;
-    }
-
-    public void StartHitPause(float duration, float timeScale)
-    {
-        if (hitPauseCoroutine != null)
-            StopCoroutine(hitPauseCoroutine);
-        hitPauseCoroutine = StartCoroutine(HitPauseRoutine(duration, timeScale));
-    }
-
-    private IEnumerator CameraShake(float duration, float magnitude)
-    {
-        Vector3 originalPos = mainCamera.transform.localPosition;
-        float elapsed = 0f;
-
-        while (elapsed < duration)
+        public bool TickAttack(PlayerController player)
         {
-            float x = Random.Range(-1f, 1f) * magnitude;
-            float y = Random.Range(-1f, 1f) * magnitude;
-            mainCamera.transform.localPosition = new Vector3(x, y, originalPos.z);
+            if (!activeAttacks.TryGetValue(player, out AttackRuntime runtime)) return true;
+            if (player.Input.HasAttackPressed) runtime.Combo.Buffer(player.Input.BufferedAttack);
 
-            elapsed += Time.unscaledDeltaTime; // Use unscaled time so shake works during hit pause
-            yield return null;
+            float elapsed = Time.time - runtime.StartedAt;
+            float activeStart = runtime.Attack.StartupSeconds;
+            float activeEnd = activeStart + runtime.Attack.ActiveSeconds;
+            if (!runtime.IsArmed && elapsed >= activeStart)
+            {
+                runtime.IsArmed = true;
+                runtime.Hitbox.Arm(this, player.gameObject, runtime.Attack, runtime.Combo.CurrentHitCount + 1);
+            }
+            if (runtime.IsArmed && elapsed >= activeEnd)
+            {
+                runtime.IsArmed = false;
+                runtime.Hitbox.Disarm();
+            }
+            if (elapsed < runtime.Attack.TotalSeconds) return false;
+
+            if (runtime.Combo.TryContinue(out AttackDefinition next))
+            {
+                BeginRuntime(player, runtime.Combo, runtime.Hitbox, next);
+                return false;
+            }
+            activeAttacks.Remove(player);
+            runtime.Combo.ResetCombo();
+            return true;
         }
 
-        mainCamera.transform.localPosition = originalPos;
+        public void EndAttack(PlayerController player)
+        {
+            if (!activeAttacks.TryGetValue(player, out AttackRuntime runtime)) return;
+            runtime.Hitbox.Disarm();
+            activeAttacks.Remove(player);
+        }
+
+        public void ResolveHit(GameObject attacker, Combatant defender, AttackDefinition attack, Vector3 point, Vector3 direction, int comboCount)
+        {
+            defender.ApplyHit(attacker, attack, point, direction, comboCount);
+            ComboManager combo = attacker.GetComponent<ComboManager>();
+            combo?.RegisterSuccessfulHit();
+            if (attack.ImpactVfx != null) Instantiate(attack.ImpactVfx, point, Quaternion.LookRotation(-direction));
+            StartHitStop(defender.IsBlocking ? blockedHitStopSeconds : attack.HitStopSeconds);
+        }
+
+        private void BeginRuntime(PlayerController player, ComboManager combo, Hitbox hitbox, AttackDefinition attack)
+        {
+            hitbox.Disarm();
+            activeAttacks[player] = new AttackRuntime { Attack = attack, Combo = combo, Hitbox = hitbox, StartedAt = Time.time };
+            Animator animator = player.GetComponent<Animator>();
+            if (!string.IsNullOrEmpty(attack.AnimatorTrigger)) animator.SetTrigger(attack.AnimatorTrigger);
+        }
+
+        private void StartHitStop(float seconds)
+        {
+            if (seconds <= 0f) return;
+            if (hitStopRoutine != null) StopCoroutine(hitStopRoutine);
+            hitStopRoutine = StartCoroutine(HitStop(seconds));
+        }
+
+        private IEnumerator HitStop(float seconds)
+        {
+            float originalScale = Time.timeScale;
+            float originalFixedDelta = Time.fixedDeltaTime;
+            Time.timeScale = hitStopTimeScale;
+            Time.fixedDeltaTime = originalFixedDelta * hitStopTimeScale;
+            yield return new WaitForSecondsRealtime(seconds);
+            Time.timeScale = originalScale;
+            Time.fixedDeltaTime = originalFixedDelta;
+            hitStopRoutine = null;
+        }
     }
 }

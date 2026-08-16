@@ -1,0 +1,43 @@
+{
+    "name": "Adventure",
+    "maps": [
+        {
+            "name": "Gameplay",
+            "id": "a481c081-40a9-4143-a62d-1136af2b8101",
+            "actions": [
+                { "name": "Move", "type": "Value", "id": "c712ef72-d4b5-4688-b8a8-cc2dbfb6fcb3", "expectedControlType": "Vector2" },
+                { "name": "Look", "type": "Value", "id": "cd6af4cc-c4f2-42f2-ae55-88b66bf7ce37", "expectedControlType": "Vector2" },
+                { "name": "Sprint", "type": "Button", "id": "89146313-6254-49b4-94ce-a31b17eb5c5e", "expectedControlType": "Button" },
+                { "name": "Jump", "type": "Button", "id": "b89d2de7-f666-45a1-ac7a-aabf8c0a3e0a", "expectedControlType": "Button" },
+                { "name": "Dash", "type": "Button", "id": "d76a6e2e-ca96-4db0-aa6e-5bc84af410b3", "expectedControlType": "Button" },
+                { "name": "Block", "type": "Button", "id": "6d125c69-ea47-4d92-bb06-bf991c8980c1", "expectedControlType": "Button" },
+                { "name": "LightAttack", "type": "Button", "id": "10524d2d-b2d8-4de1-ae78-a5a83b8f2e46", "expectedControlType": "Button" },
+                { "name": "HeavyAttack", "type": "Button", "id": "a83cfa92-93da-42cd-ae9f-8363108eab14", "expectedControlType": "Button" },
+                { "name": "SpecialAttack", "type": "Button", "id": "a4a1a521-2f54-4ca8-a9e3-ac5a70fbe5bd", "expectedControlType": "Button" },
+                { "name": "Grab", "type": "Button", "id": "4c61da95-047b-468a-9e1b-9681ed6bea12", "expectedControlType": "Button" },
+                { "name": "Ultimate", "type": "Button", "id": "f274b74f-58e3-4e8e-9c7c-69e5eaaf91d8", "expectedControlType": "Button" },
+                { "name": "LockOn", "type": "Button", "id": "67236b79-8e1c-41b8-8a59-b5bf6fa91221", "expectedControlType": "Button" },
+                { "name": "Interact", "type": "Button", "id": "3b561cbb-fd41-4be5-86a9-0b20f7ce58c8", "expectedControlType": "Button" }
+            ],
+            "bindings": [
+                { "name": "WASD", "id": "b8fc3042-8cf9-4952-a9e0-4ce7909c15bf", "path": "2DVector", "action": "Move", "isComposite": true },
+                { "name": "up", "id": "8766f6cc-d3fe-4e35-a84e-e18b5e9cde1a", "path": "<Keyboard>/w", "action": "Move", "isPartOfComposite": true },
+                { "name": "down", "id": "248562b1-f5f4-4a1d-94dd-9e196b4419cd", "path": "<Keyboard>/s", "action": "Move", "isPartOfComposite": true },
+                { "name": "left", "id": "4f950473-696a-4bf4-9db6-a2e065fefb06", "path": "<Keyboard>/a", "action": "Move", "isPartOfComposite": true },
+                { "name": "right", "id": "b8686a79-0176-4631-bd64-bda4c6ddc90f", "path": "<Keyboard>/d", "action": "Move", "isPartOfComposite": true },
+                { "name": "", "id": "4fb3b1f5-435f-479a-80f9-34b3fd44cd9a", "path": "<Gamepad>/leftStick", "action": "Move" },
+                { "name": "", "id": "7a8b5645-b7a9-46b8-a653-a914c32ab4a8", "path": "<Mouse>/delta", "action": "Look" },
+                { "name": "", "id": "f441ee1c-7b0c-4d46-afd3-fba90c5b5f09", "path": "<Gamepad>/rightStick", "action": "Look" },
+                { "name": "", "id": "6fc9a904-5222-4071-9016-988021e5c4cd", "path": "<Keyboard>/leftShift", "action": "Sprint" },
+                { "name": "", "id": "bd9f687f-699c-4273-aa2e-c7df6929e093", "path": "<Keyboard>/space", "action": "Jump" },
+                { "name": "", "id": "f8fd06d3-a60e-4c64-bb8a-0b2ec1ed4c18", "path": "<Keyboard>/leftShift", "action": "Dash" },
+                { "name": "", "id": "76130988-c8e7-467f-99c4-53569f1b74bd", "path": "<Mouse>/rightButton", "action": "Block" },
+                { "name": "", "id": "00dc7b81-49c4-4687-9e81-56fdbebf6a6b", "path": "<Mouse>/leftButton", "action": "LightAttack" },
+                { "name": "", "id": "4e3a88d6-6b2c-4d4f-a9c5-d5b0a7a18888", "path": "<Keyboard>/q", "action": "HeavyAttack" },
+                { "name": "", "id": "6e12d598-da33-480b-ae79-233f3dbe8c0f", "path": "<Keyboard>/e", "action": "SpecialAttack" },
+                { "name": "", "id": "e2778292-eb04-45af-8a1f-4a987e2b0a35", "path": "<Keyboard>/f", "action": "Interact" }
+            ]
+        }
+    ],
+    "controlSchemes": []
+}

@@ -1,40 +1,55 @@
+using System.Collections.Generic;
 using UnityEngine;
+using SeasOfLegends.Data;
 
-/// <summary>
-/// Simple hitbox component for weapons. Detects overlaps with hurtboxes.
-/// Place on weapon colliders (trigger) to register hits.
-/// </summary>
-[RequireComponent(typeof(Collider))]
-public class Hitbox : MonoBehaviour
+namespace SeasOfLegends.Combat
 {
-    public int damage = 10;
-    public float knockbackForce = 5f;
-    public Vector3 knockbackDirection = Vector3.up; // Default upward knockback
-    public bool canCauseHitPause = true;
-    public float hitPauseDuration = 0.05f; // Seconds to pause time
-    public float hitPauseScale = 0.01f; // Time scale during pause (0.01 = 1% normal speed)
-
-    // Event called when this hitbox hits a hurtbox
-    public System.Action<Hitbox, Hurtbox> OnHit;
-
-    private void OnTriggerEnter(Collider other)
+    /// <summary>
+    /// Required components: trigger Collider. Place this on an animated weapon child and leave
+    /// it disabled by default. CombatSystem controls its active window from frame data.
+    /// </summary>
+    [RequireComponent(typeof(Collider))]
+    public sealed class Hitbox : MonoBehaviour
     {
-        Hurtbox hurtbox = other.GetComponent<Hurtbox>();
-        if (hurtbox != null && hurtbox.IsActive)
+        private readonly HashSet<Combatant> hitTargets = new HashSet<Combatant>();
+        private Collider triggerCollider;
+        private CombatSystem system;
+        private GameObject owner;
+        private AttackDefinition attack;
+        private int comboCount;
+
+        private void Awake()
         {
-            OnHit?.Invoke(this, hurtbox);
+            triggerCollider = GetComponent<Collider>();
+            triggerCollider.isTrigger = true;
+            triggerCollider.enabled = false;
+        }
 
-            // Spawn VFX at point of impact
-            // We approximate impact point as the closest point on the hitbox collider to the hurtbox
-            // For simplicity, we use the hitbox's position (could be improved)
-            Vector3 impactPoint = transform.position;
-            Vector3 impactNormal = -transform.forward; // Assuming hitbox faces forward
+        public void Arm(CombatSystem combatSystem, GameObject attacker, AttackDefinition attackDefinition, int attackComboCount)
+        {
+            system = combatSystem;
+            owner = attacker;
+            attack = attackDefinition;
+            comboCount = attackComboCount;
+            hitTargets.Clear();
+            triggerCollider.enabled = true;
+        }
 
-            // Call VFX manager if available
-            if (VFXManager.Instance != null)
-            {
-                VFXManager.Instance.ProcessHitVFX(this, hurtbox, impactPoint, impactNormal);
-            }
+        public void Disarm()
+        {
+            triggerCollider.enabled = false;
+            hitTargets.Clear();
+            attack = null;
+            owner = null;
+        }
+
+        private void OnTriggerEnter(Collider other)
+        {
+            if (attack == null || owner == null) return;
+            Combatant target = other.GetComponentInParent<Combatant>();
+            if (target == null || target.gameObject == owner || !hitTargets.Add(target)) return;
+            Vector3 point = other.ClosestPoint(transform.position);
+            system.ResolveHit(owner, target, attack, point, (target.transform.position - owner.transform.position).normalized, comboCount);
         }
     }
 }
