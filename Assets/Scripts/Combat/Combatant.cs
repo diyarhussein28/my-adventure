@@ -17,6 +17,7 @@ namespace SeasOfLegends.Combat
         [SerializeField] private bool canBeLaunched = true;
 
         public float CurrentHealth { get; private set; }
+        public float MaximumHealth => maximumHealth;
         public bool IsDefeated => CurrentHealth <= 0f;
         public bool IsBlocking
         {
@@ -28,6 +29,14 @@ namespace SeasOfLegends.Combat
         }
 
         private void Awake() => CurrentHealth = maximumHealth;
+
+        /// <summary>Runtime bootstrap helper for quickly tuning a self-contained encounter.</summary>
+        public void ConfigureForPrototype(float health, float reduction = 0f)
+        {
+            maximumHealth = Mathf.Max(1f, health);
+            damageReduction = Mathf.Clamp01(reduction);
+            CurrentHealth = maximumHealth;
+        }
 
         public void ApplyHit(GameObject attacker, AttackDefinition attack, Vector3 point, Vector3 direction, int comboCount)
         {

@@ -45,6 +45,16 @@ namespace SeasOfLegends.Player
         public bool StunFinished => Time.time >= stunEndsAt;
         public bool ExecutionFinished => Time.time >= executionEndsAt;
 
+        /// <summary>Runtime bootstrap helper for the self-contained vertical-slice scene.</summary>
+        public void ConfigureForPrototype(CharacterDefinition characterDefinition, CombatSystem systems, Transform camera)
+        {
+            definition = characterDefinition;
+            combatSystem = systems;
+            cameraTransform = camera;
+        }
+
+        public void SetCameraTransform(Transform camera) => cameraTransform = camera;
+
         private void Awake()
         {
             input = GetComponent<PlayerInputReader>();
@@ -77,7 +87,14 @@ namespace SeasOfLegends.Player
         private void UpdateSensors()
         {
             Vector3 origin = transform.position + Vector3.up * 0.2f;
-            IsGrounded = Physics.SphereCast(origin, groundProbeRadius, Vector3.down, out _, groundProbeDistance, groundMask, QueryTriggerInteraction.Ignore);
+            RaycastHit[] hits = Physics.SphereCastAll(origin, groundProbeRadius, Vector3.down, groundProbeDistance, groundMask, QueryTriggerInteraction.Ignore);
+            IsGrounded = false;
+            for (int i = 0; i < hits.Length; i++)
+            {
+                if (hits[i].collider.transform == transform || hits[i].collider.transform.IsChildOf(transform)) continue;
+                IsGrounded = true;
+                break;
+            }
             if (IsGrounded) airDashes = 0;
         }
 

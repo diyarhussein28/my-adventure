@@ -29,6 +29,14 @@ namespace SeasOfLegends.AI
         private float stateEndsAt;
         private bool hitboxArmed;
 
+        /// <summary>Runtime bootstrap helper for the starter combat encounter.</summary>
+        public void ConfigureForPrototype(Transform playerTarget, CombatSystem systems, AttackDefinition attack)
+        {
+            target = playerTarget;
+            combatSystem = systems;
+            basicAttack = attack;
+        }
+
         private void Awake()
         {
             agent = GetComponent<NavMeshAgent>();
@@ -64,14 +72,26 @@ namespace SeasOfLegends.AI
         private void UpdateLocomotion()
         {
             float distance = Vector3.Distance(transform.position, target.position);
-            if (distance > aggroDistance) { agent.isStopped = true; return; }
-            if (distance > attackDistance)
+            if (distance > aggroDistance)
             {
-                agent.isStopped = false;
-                agent.SetDestination(target.position);
+                if (agent.isOnNavMesh) agent.isStopped = true;
                 return;
             }
-            agent.isStopped = true;
+            if (distance > attackDistance)
+            {
+                if (agent.isOnNavMesh)
+                {
+                    agent.isStopped = false;
+                    agent.SetDestination(target.position);
+                }
+                else
+                {
+                    Vector3 direction = Vector3.ProjectOnPlane(target.position - transform.position, Vector3.up).normalized;
+                    transform.position += direction * 2.8f * Time.deltaTime;
+                }
+                return;
+            }
+            if (agent.isOnNavMesh) agent.isStopped = true;
             transform.rotation = Quaternion.LookRotation(Vector3.ProjectOnPlane(target.position - transform.position, Vector3.up));
             if (Random.value < blockChance * Time.deltaTime) { stateEndsAt = Time.time + 0.3f; SetState(State.Blocking); }
             else SetState(State.Attacking);

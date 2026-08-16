@@ -47,6 +47,17 @@ namespace SeasOfLegends.Data
         public float ActiveSeconds => activeFrames / 60f;
         public float RecoverySeconds => recoveryFrames / 60f;
         public float TotalSeconds => (startupFrames + activeFrames + recoveryFrames) / 60f;
+
+        /// <summary>Runtime bootstrap helper for sample attacks without serialized assets.</summary>
+        public void ConfigureForPrototype(string id, AttackInput attackInput, float damage, int startup, int active, int recovery)
+        {
+            attackId = id;
+            input = attackInput;
+            baseDamage = damage;
+            startupFrames = Mathf.Max(0, startup);
+            activeFrames = Mathf.Max(1, active);
+            recoveryFrames = Mathf.Max(0, recovery);
+        }
     }
 
     [CreateAssetMenu(fileName = "ComboDefinition", menuName = "Seas of Legends/Combat/Combo Definition")]
@@ -59,5 +70,13 @@ namespace SeasOfLegends.Data
         public string ComboId => comboId;
         public AttackDefinition[] Sequence => sequence;
         public float InputBufferSeconds => inputBufferSeconds;
+
+        /// <summary>Runtime bootstrap helper for a self-contained sample combo.</summary>
+        public void ConfigureForPrototype(string id, AttackDefinition[] attacks, float bufferSeconds = 0.3f)
+        {
+            comboId = id;
+            sequence = attacks;
+            inputBufferSeconds = Mathf.Max(0.05f, bufferSeconds);
+        }
     }
 }

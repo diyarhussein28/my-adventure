@@ -18,6 +18,12 @@ namespace SeasOfLegends.Combat
 
         public int CurrentHitCount { get; private set; }
 
+        /// <summary>Runtime bootstrap helper used by the starter vertical slice.</summary>
+        public void ConfigureForPrototype(ComboDefinition[] prototypeCombos)
+        {
+            combos = prototypeCombos;
+        }
+
         public bool TryBegin(AttackInput input, out AttackDefinition attack)
         {
             ResetCombo();

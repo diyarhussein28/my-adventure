@@ -40,6 +40,10 @@
 └── ProjectSettings/ProjectVersion.txt      # Unity 2022.3 LTS baseline
 ```
 
+## Play the starter island
+
+Open `Assets/Scenes/StarterIsland.unity` and press **Play**. The scene is also registered as the build entry point. It creates a tropical island, a controllable Tide Warden, a pursuing Crimson Raider, camera, HUD, and a two-hit combat loop without requiring manual prefab setup. See [`Docs/PLAYABLE_SLICE.md`](Docs/PLAYABLE_SLICE.md) for the exact controls and a replacement path from prototype primitives to final game assets.
+
 ## Open the project
 
 Open the repository root in **Unity Hub** using Unity **2022.3.20f1** or a compatible 2022.3 LTS editor. Unity restores the declared Input System, Cinemachine, URP, and VFX Graph packages from `Packages/manifest.json`. In **Project Settings → Player**, ensure **Active Input Handling** is set to **Input System Package (New)** or **Both**.
@@ -94,6 +98,7 @@ The included `.inputactions` file gives keyboard and initial gamepad bindings. C
 | Architecture and patterns | `Docs/ARCHITECTURE.md`, `Assets/Scripts/Core/GameEvents.cs`, `Assets/Scripts/Data/WeaponAndBiomeDefinitions.cs` |
 | Player FSM and movement | `Assets/Scripts/Player/PlayerController.cs`, `PlayerState.cs`, `PlayerStateMachine.cs`, `PlayerStates.cs` |
 | Combat, combo buffer, hitboxes, hit-stop | `Assets/Scripts/Combat/CombatSystem.cs`, `ComboManager.cs`, `Hitbox.cs`, `Combatant.cs`, `Assets/Scripts/Data/AttackDefinition.cs` |
+| Starter island vertical slice | `Assets/Scenes/StarterIsland.unity`, `Assets/Scripts/Core/PrototypeSceneBootstrap.cs`, `Docs/PLAYABLE_SLICE.md` |
 | Island streaming | `Assets/Scripts/World/IslandManager.cs`, `Assets/Scripts/Data/WorldAndQuestDefinitions.cs` |
 | Narrative and quests | `Assets/Scripts/Quest/QuestManager.cs`, `Assets/Scripts/Data/WorldAndQuestDefinitions.cs` |
 | Input and camera | `Assets/Scripts/Input/PlayerInputReader.cs`, `Assets/Scripts/Camera/AdventureCameraDirector.cs` |
