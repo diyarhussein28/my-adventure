@@ -4,6 +4,7 @@ using SeasOfLegends.AI;
 using SeasOfLegends.CameraSystem;
 using SeasOfLegends.Combat;
 using SeasOfLegends.Data;
+using SeasOfLegends.Input;
 using SeasOfLegends.Player;
 using SeasOfLegends.UI;
 
