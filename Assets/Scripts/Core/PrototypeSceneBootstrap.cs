@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Rendering;
 using SeasOfLegends.AI;
 using SeasOfLegends.CameraSystem;
 using SeasOfLegends.Combat;
@@ -203,8 +204,17 @@ namespace SeasOfLegends.Core
 
         private Material CreateMaterial(Color color)
         {
-            Shader shader = Shader.Find("Universal Render Pipeline/Lit");
+            // A project can import URP without assigning a pipeline asset. In that case a URP
+            // shader renders magenta in Unity's built-in pipeline, so select by active pipeline.
+            bool usesScriptableRenderPipeline = GraphicsSettings.currentRenderPipeline != null;
+            Shader shader = usesScriptableRenderPipeline
+                ? Shader.Find("Universal Render Pipeline/Lit")
+                : Shader.Find("Standard");
+
+            // Keep the prototype visible even if an unexpected SRP is configured.
             if (shader == null) shader = Shader.Find("Standard");
+            if (shader == null) shader = Shader.Find("Unlit/Color");
+
             Material material = new Material(shader);
             material.color = color;
             return material;
