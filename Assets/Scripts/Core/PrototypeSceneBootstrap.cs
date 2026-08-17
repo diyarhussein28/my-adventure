@@ -56,8 +56,8 @@ namespace SeasOfLegends.Core
             ComboDefinition combo = ScriptableObject.CreateInstance<ComboDefinition>();
             combo.ConfigureForPrototype("tide_cut", new[] { lightOne, lightTwo });
 
-            GameObject player = new GameObject("Player - Tide Warden");
-            Vector3 playerSpawn = new Vector3(-5.5f, 0f, -17f);
+            GameObject player = new GameObject("Nahlia Vey - Tide Warden");
+            Vector3 playerSpawn = new Vector3(-27f, 0f, -12f);
             playerSpawn.y = SampleTerrainHeight(playerSpawn) + 0.04f;
             player.transform.position = playerSpawn;
             Rigidbody body = player.AddComponent<Rigidbody>();
@@ -76,7 +76,7 @@ namespace SeasOfLegends.Core
             comboManager.ConfigureForPrototype(new[] { combo });
             PlayerController controller = player.AddComponent<PlayerController>();
 
-            Animator playerPresentation = CreateCharacterVisual(player.transform, "Tide Warden Model", playerColor, 1.1f, "Art/Characters/tide_warden", "Models/Characters/VanguardHero");
+            Animator playerPresentation = CreateCharacterVisual(player.transform, "Nahlia Vey", new Color(0.18f, 0.49f, 0.68f), 1f, "", "Lumenwake/Characters/Nahlia/ErikaArcher");
             if (playerPresentation != null) controller.SetPresentationAnimator(playerPresentation);
             CreateWeaponHitbox(player.transform, "Tide Warden Blade", new Vector3(0.25f, 1.1f, 0.7f), playerColor);
 
@@ -88,8 +88,8 @@ namespace SeasOfLegends.Core
         private Transform CreateEnemy(Transform player, CombatSystem combatSystem)
         {
             AttackDefinition enemyAttack = CreateAttack("raider_slash", AttackInput.Light, 9f, 12, 4, 18);
-            GameObject enemy = new GameObject("Enemy - Crimson Raider");
-            Vector3 enemySpawn = new Vector3(1.5f, 0f, 4f);
+            GameObject enemy = new GameObject("Brine Tax Enforcer");
+            Vector3 enemySpawn = new Vector3(31f, 0f, 21f);
             enemySpawn.y = SampleTerrainHeight(enemySpawn) + 0.04f;
             enemy.transform.position = enemySpawn;
             CapsuleCollider capsule = enemy.AddComponent<CapsuleCollider>();
@@ -102,7 +102,7 @@ namespace SeasOfLegends.Core
             combatant.ConfigureForPrototype(85f);
             EnemyController controller = enemy.AddComponent<EnemyController>();
 
-            Animator enemyPresentation = CreateCharacterVisual(enemy.transform, "Crimson Raider Model", enemyColor, 1.12f, "Art/Characters/crimson_raider", "Models/Characters/VanguardHero");
+            Animator enemyPresentation = CreateCharacterVisual(enemy.transform, "Brine Tax Enforcer", new Color(0.36f, 0.04f, 0.05f), 1.1f, "", "Models/Characters/VanguardHero");
             if (enemyPresentation != null) controller.SetPresentationAnimator(enemyPresentation);
             CreateWeaponHitbox(enemy.transform, "Raider Cutlass", new Vector3(-0.25f, 1.05f, 0.75f), enemyColor);
             controller.ConfigureForPrototype(player, combatSystem, enemyAttack);
@@ -155,7 +155,9 @@ namespace SeasOfLegends.Core
                 modelInstance.transform.localScale = Vector3.one;
                 ApplyCharacterAccent(modelInstance, color);
                 Animator modelAnimator = modelInstance.GetComponentInChildren<Animator>();
-                RuntimeAnimatorController locomotionController = Resources.Load<RuntimeAnimatorController>("Models/Animations/VanguardLocomotion");
+                RuntimeAnimatorController locomotionController = Resources.Load<RuntimeAnimatorController>("Lumenwake/Animations/NahliaLocomotion");
+                if (locomotionController == null)
+                    locomotionController = Resources.Load<RuntimeAnimatorController>("Models/Animations/VanguardLocomotion");
                 if (modelAnimator != null && locomotionController != null)
                 {
                     modelAnimator.runtimeAnimatorController = locomotionController;
@@ -164,25 +166,7 @@ namespace SeasOfLegends.Core
                 return modelAnimator;
             }
 
-            // Art-panel fallback remains available only when the real FBX model has not imported.
-            GameObject body = CreatePrimitive(PrimitiveType.Capsule, visualName, root.position, Vector3.one * height, color);
-            body.transform.SetParent(root);
-            body.transform.localPosition = new Vector3(0f, 0.95f, 0f);
-            Collider visualCollider = body.GetComponent<Collider>();
-            if (visualCollider != null) Destroy(visualCollider);
-
-            Texture2D portrait = Resources.Load<Texture2D>(portraitResourcePath);
-            if (portrait == null) return null;
-            GameObject portraitPanel = GameObject.CreatePrimitive(PrimitiveType.Quad);
-            portraitPanel.name = visualName + " Concept Art";
-            portraitPanel.transform.SetParent(root);
-            portraitPanel.transform.localPosition = new Vector3(0f, 1.5f, 0.12f);
-            portraitPanel.transform.localScale = new Vector3(1.7f, 2.55f, 1f);
-            Collider portraitCollider = portraitPanel.GetComponent<Collider>();
-            if (portraitCollider != null) Destroy(portraitCollider);
-            Renderer portraitRenderer = portraitPanel.GetComponent<Renderer>();
-            portraitRenderer.material = CreateTransparentMaterial(portrait);
-            portraitPanel.AddComponent<CharacterArtBillboard>();
+            Debug.LogError($"Required rigged character asset is missing: Resources/{riggedModelResourcePath}");
             return null;
         }
 
@@ -206,6 +190,8 @@ namespace SeasOfLegends.Core
             weapon.transform.SetParent(root);
             weapon.transform.localPosition = localPosition;
             weapon.transform.localRotation = Quaternion.Euler(0f, 20f, 0f);
+            Renderer visibleWeapon = weapon.GetComponent<Renderer>();
+            if (visibleWeapon != null) visibleWeapon.enabled = false;
             BoxCollider collider = weapon.GetComponent<BoxCollider>();
             collider.isTrigger = true;
             weapon.AddComponent<Hitbox>();
