@@ -37,6 +37,12 @@ namespace SeasOfLegends.AI
             basicAttack = attack;
         }
 
+        /// <summary>Routes enemy state changes to the Animator on an imported humanoid visual.</summary>
+        public void SetPresentationAnimator(Animator presentationAnimator)
+        {
+            if (presentationAnimator != null) animator = presentationAnimator;
+        }
+
         private void Awake()
         {
             agent = GetComponent<NavMeshAgent>();

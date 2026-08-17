@@ -100,7 +100,8 @@ namespace SeasOfLegends.Core
             comboManager.ConfigureForPrototype(new[] { combo });
             PlayerController controller = player.AddComponent<PlayerController>();
 
-            CreateCharacterVisual(player.transform, "Tide Warden Model", playerColor, 1.1f, "Art/Characters/tide_warden");
+            Animator playerPresentation = CreateCharacterVisual(player.transform, "Tide Warden Model", playerColor, 1.1f, "Art/Characters/tide_warden", "Models/Characters/VanguardHero");
+            if (playerPresentation != null) controller.SetPresentationAnimator(playerPresentation);
             CreateWeaponHitbox(player.transform, "Tide Warden Blade", new Vector3(0.25f, 1.1f, 0.7f), playerColor);
 
             // Camera is created after the player, then assigned in CreateCamera before Start runs.
@@ -123,7 +124,8 @@ namespace SeasOfLegends.Core
             combatant.ConfigureForPrototype(85f);
             EnemyController controller = enemy.AddComponent<EnemyController>();
 
-            CreateCharacterVisual(enemy.transform, "Crimson Raider Model", enemyColor, 1.12f, "Art/Characters/crimson_raider");
+            Animator enemyPresentation = CreateCharacterVisual(enemy.transform, "Crimson Raider Model", enemyColor, 1.12f, "Art/Characters/crimson_raider", "Models/Characters/VanguardHero");
+            if (enemyPresentation != null) controller.SetPresentationAnimator(enemyPresentation);
             CreateWeaponHitbox(enemy.transform, "Raider Cutlass", new Vector3(-0.25f, 1.05f, 0.75f), enemyColor);
             controller.ConfigureForPrototype(player, combatSystem, enemyAttack);
             return enemy.transform;
@@ -157,8 +159,28 @@ namespace SeasOfLegends.Core
             return definition;
         }
 
-        private void CreateCharacterVisual(Transform root, string visualName, Color color, float height, string portraitResourcePath)
+        private Animator CreateCharacterVisual(Transform root, string visualName, Color color, float height, string portraitResourcePath, string riggedModelResourcePath)
         {
+            GameObject riggedModel = Resources.Load<GameObject>(riggedModelResourcePath);
+            if (riggedModel != null)
+            {
+                GameObject modelInstance = Instantiate(riggedModel, root);
+                modelInstance.name = visualName + " Rigged Humanoid";
+                modelInstance.transform.localPosition = Vector3.zero;
+                modelInstance.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
+                modelInstance.transform.localScale = Vector3.one;
+                ApplyCharacterAccent(modelInstance, color);
+                Animator modelAnimator = modelInstance.GetComponentInChildren<Animator>();
+                RuntimeAnimatorController locomotionController = Resources.Load<RuntimeAnimatorController>("Models/Animations/VanguardLocomotion");
+                if (modelAnimator != null && locomotionController != null)
+                {
+                    modelAnimator.runtimeAnimatorController = locomotionController;
+                    modelAnimator.applyRootMotion = false;
+                }
+                return modelAnimator;
+            }
+
+            // Art-panel fallback remains available only when the real FBX model has not imported.
             GameObject body = CreatePrimitive(PrimitiveType.Capsule, visualName, root.position, Vector3.one * height, color);
             body.transform.SetParent(root);
             body.transform.localPosition = new Vector3(0f, 0.95f, 0f);
@@ -166,7 +188,7 @@ namespace SeasOfLegends.Core
             if (visualCollider != null) Destroy(visualCollider);
 
             Texture2D portrait = Resources.Load<Texture2D>(portraitResourcePath);
-            if (portrait == null) return;
+            if (portrait == null) return null;
             GameObject portraitPanel = GameObject.CreatePrimitive(PrimitiveType.Quad);
             portraitPanel.name = visualName + " Concept Art";
             portraitPanel.transform.SetParent(root);
@@ -177,6 +199,21 @@ namespace SeasOfLegends.Core
             Renderer portraitRenderer = portraitPanel.GetComponent<Renderer>();
             portraitRenderer.material = CreateTransparentMaterial(portrait);
             portraitPanel.AddComponent<CharacterArtBillboard>();
+            return null;
+        }
+
+        private void ApplyCharacterAccent(GameObject modelInstance, Color accent)
+        {
+            Renderer[] renderers = modelInstance.GetComponentsInChildren<Renderer>(true);
+            for (int i = 0; i < renderers.Length; i++)
+            {
+                Material[] materials = renderers[i].materials;
+                for (int j = 0; j < materials.Length; j++)
+                {
+                    if (materials[j].HasProperty("_Color"))
+                        materials[j].color = Color.Lerp(materials[j].color, accent, 0.18f);
+                }
+            }
         }
 
         private void CreateWeaponHitbox(Transform root, string weaponName, Vector3 localPosition, Color color)

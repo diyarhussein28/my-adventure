@@ -55,6 +55,12 @@ namespace SeasOfLegends.Player
 
         public void SetCameraTransform(Transform camera) => cameraTransform = camera;
 
+        /// <summary>Routes gameplay state parameters to the Animator on an imported humanoid visual.</summary>
+        public void SetPresentationAnimator(Animator presentationAnimator)
+        {
+            if (presentationAnimator != null) animator = presentationAnimator;
+        }
+
         private void Awake()
         {
             input = GetComponent<PlayerInputReader>();
@@ -211,6 +217,7 @@ namespace SeasOfLegends.Player
             Vector3 local = transform.InverseTransformDirection(body.velocity);
             animator.SetFloat("SpeedX", local.x);
             animator.SetFloat("SpeedZ", local.z);
+            animator.SetFloat("WalkRate", new Vector2(local.x, local.z).magnitude / Mathf.Max(0.01f, definition.MoveSpeed));
             animator.SetFloat("VerticalSpeed", body.velocity.y);
             animator.SetBool("Grounded", IsGrounded);
         }
