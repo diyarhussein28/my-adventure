@@ -38,33 +38,7 @@ namespace SeasOfLegends.Core
 
         private void BuildEnvironment()
         {
-            RenderSettings.ambientLight = new Color(0.47f, 0.62f, 0.74f);
-            RenderSettings.fog = true;
-            RenderSettings.fogColor = new Color(0.36f, 0.63f, 0.77f);
-            RenderSettings.fogDensity = 0.012f;
-
-            GameObject lightObject = new GameObject("Sun");
-            Light sun = lightObject.AddComponent<Light>();
-            sun.type = LightType.Directional;
-            sun.intensity = 1.2f;
-            lightObject.transform.rotation = Quaternion.Euler(48f, -30f, 0f);
-
-            GameObject ocean = CreatePrimitive(PrimitiveType.Plane, "Ocean", Vector3.zero, new Vector3(15f, 1f, 15f), oceanColor);
-            ocean.transform.SetParent(transform);
-            GameObject island = CreatePrimitive(PrimitiveType.Cylinder, "Starter Island", new Vector3(0f, 0.35f, 0f), new Vector3(7.5f, 0.35f, 7.5f), islandColor);
-            island.transform.SetParent(transform);
-            GameObject beach = CreatePrimitive(PrimitiveType.Cylinder, "Beach", new Vector3(0f, 0.39f, 0f), new Vector3(8.2f, 0.06f, 8.2f), sandColor);
-            beach.transform.SetParent(transform);
-
-            ApplyTexture(ocean.GetComponent<Renderer>(), "Art/Environment/ocean_water", new Vector2(16f, 16f));
-            ApplyTexture(island.GetComponent<Renderer>(), "Art/Environment/tropical_island_ground", new Vector2(5f, 5f));
-            ApplyTexture(beach.GetComponent<Renderer>(), "Art/Environment/tropical_island_ground", new Vector2(6f, 6f));
-
-            CreateRock(new Vector3(-3.5f, 1.1f, 2.4f), new Vector3(1.4f, 2.2f, 1.1f));
-            CreateRock(new Vector3(3.7f, 1f, -2.8f), new Vector3(1.7f, 2f, 1.2f));
-            CreatePalm(new Vector3(-4.5f, 0.7f, -1.8f), 2.5f);
-            CreatePalm(new Vector3(4.1f, 0.7f, 2.1f), 2.2f);
-            CreatePalm(new Vector3(1.6f, 0.7f, 4.7f), 1.9f);
+            SeasOfLegends.World.CinematicIslandBuilder.Build(transform);
         }
 
         private CombatSystem CreateSystems()
@@ -83,7 +57,9 @@ namespace SeasOfLegends.Core
             combo.ConfigureForPrototype("tide_cut", new[] { lightOne, lightTwo });
 
             GameObject player = new GameObject("Player - Tide Warden");
-            player.transform.position = new Vector3(0f, 0.72f, -4.3f);
+            Vector3 playerSpawn = new Vector3(-5.5f, 0f, -17f);
+            playerSpawn.y = SampleTerrainHeight(playerSpawn) + 0.04f;
+            player.transform.position = playerSpawn;
             Rigidbody body = player.AddComponent<Rigidbody>();
             body.mass = 70f;
             body.constraints = RigidbodyConstraints.FreezeRotation;
@@ -113,7 +89,9 @@ namespace SeasOfLegends.Core
         {
             AttackDefinition enemyAttack = CreateAttack("raider_slash", AttackInput.Light, 9f, 12, 4, 18);
             GameObject enemy = new GameObject("Enemy - Crimson Raider");
-            enemy.transform.position = new Vector3(0f, 0.72f, 3.5f);
+            Vector3 enemySpawn = new Vector3(1.5f, 0f, 4f);
+            enemySpawn.y = SampleTerrainHeight(enemySpawn) + 0.04f;
+            enemy.transform.position = enemySpawn;
             CapsuleCollider capsule = enemy.AddComponent<CapsuleCollider>();
             capsule.height = 2f;
             capsule.radius = 0.42f;
@@ -150,6 +128,12 @@ namespace SeasOfLegends.Core
             GameObject hud = new GameObject("Vertical Slice HUD");
             PrototypeHud display = hud.AddComponent<PrototypeHud>();
             display.ConfigureForPrototype(player, enemy);
+        }
+
+        private float SampleTerrainHeight(Vector3 position)
+        {
+            Terrain terrain = Terrain.activeTerrain;
+            return terrain != null ? terrain.SampleHeight(position) + terrain.transform.position.y : 0f;
         }
 
         private AttackDefinition CreateAttack(string id, AttackInput input, float damage, int startup, int active, int recovery)
