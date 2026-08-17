@@ -56,6 +56,10 @@ namespace SeasOfLegends.Core
             GameObject beach = CreatePrimitive(PrimitiveType.Cylinder, "Beach", new Vector3(0f, 0.39f, 0f), new Vector3(8.2f, 0.06f, 8.2f), sandColor);
             beach.transform.SetParent(transform);
 
+            ApplyTexture(ocean.GetComponent<Renderer>(), "Art/Environment/ocean_water", new Vector2(16f, 16f));
+            ApplyTexture(island.GetComponent<Renderer>(), "Art/Environment/tropical_island_ground", new Vector2(5f, 5f));
+            ApplyTexture(beach.GetComponent<Renderer>(), "Art/Environment/tropical_island_ground", new Vector2(6f, 6f));
+
             CreateRock(new Vector3(-3.5f, 1.1f, 2.4f), new Vector3(1.4f, 2.2f, 1.1f));
             CreateRock(new Vector3(3.7f, 1f, -2.8f), new Vector3(1.7f, 2f, 1.2f));
             CreatePalm(new Vector3(-4.5f, 0.7f, -1.8f), 2.5f);
@@ -96,7 +100,7 @@ namespace SeasOfLegends.Core
             comboManager.ConfigureForPrototype(new[] { combo });
             PlayerController controller = player.AddComponent<PlayerController>();
 
-            CreateCharacterVisual(player.transform, "Tide Warden Model", playerColor, 1.1f);
+            CreateCharacterVisual(player.transform, "Tide Warden Model", playerColor, 1.1f, "Art/Characters/tide_warden");
             CreateWeaponHitbox(player.transform, "Tide Warden Blade", new Vector3(0.25f, 1.1f, 0.7f), playerColor);
 
             // Camera is created after the player, then assigned in CreateCamera before Start runs.
@@ -119,7 +123,7 @@ namespace SeasOfLegends.Core
             combatant.ConfigureForPrototype(85f);
             EnemyController controller = enemy.AddComponent<EnemyController>();
 
-            CreateCharacterVisual(enemy.transform, "Crimson Raider Model", enemyColor, 1.12f);
+            CreateCharacterVisual(enemy.transform, "Crimson Raider Model", enemyColor, 1.12f, "Art/Characters/crimson_raider");
             CreateWeaponHitbox(enemy.transform, "Raider Cutlass", new Vector3(-0.25f, 1.05f, 0.75f), enemyColor);
             controller.ConfigureForPrototype(player, combatSystem, enemyAttack);
             return enemy.transform;
@@ -153,13 +157,26 @@ namespace SeasOfLegends.Core
             return definition;
         }
 
-        private void CreateCharacterVisual(Transform root, string visualName, Color color, float height)
+        private void CreateCharacterVisual(Transform root, string visualName, Color color, float height, string portraitResourcePath)
         {
             GameObject body = CreatePrimitive(PrimitiveType.Capsule, visualName, root.position, Vector3.one * height, color);
             body.transform.SetParent(root);
             body.transform.localPosition = new Vector3(0f, 0.95f, 0f);
             Collider visualCollider = body.GetComponent<Collider>();
             if (visualCollider != null) Destroy(visualCollider);
+
+            Texture2D portrait = Resources.Load<Texture2D>(portraitResourcePath);
+            if (portrait == null) return;
+            GameObject portraitPanel = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            portraitPanel.name = visualName + " Concept Art";
+            portraitPanel.transform.SetParent(root);
+            portraitPanel.transform.localPosition = new Vector3(0f, 1.5f, 0.12f);
+            portraitPanel.transform.localScale = new Vector3(1.7f, 2.55f, 1f);
+            Collider portraitCollider = portraitPanel.GetComponent<Collider>();
+            if (portraitCollider != null) Destroy(portraitCollider);
+            Renderer portraitRenderer = portraitPanel.GetComponent<Renderer>();
+            portraitRenderer.material = CreateTransparentMaterial(portrait);
+            portraitPanel.AddComponent<CharacterArtBillboard>();
         }
 
         private void CreateWeaponHitbox(Transform root, string weaponName, Vector3 localPosition, Color color)
@@ -171,6 +188,23 @@ namespace SeasOfLegends.Core
             BoxCollider collider = weapon.GetComponent<BoxCollider>();
             collider.isTrigger = true;
             weapon.AddComponent<Hitbox>();
+        }
+
+        private void ApplyTexture(Renderer renderer, string resourcePath, Vector2 tiling)
+        {
+            Texture2D texture = Resources.Load<Texture2D>(resourcePath);
+            if (renderer == null || texture == null) return;
+            renderer.material.mainTexture = texture;
+            renderer.material.mainTextureScale = tiling;
+        }
+
+        private Material CreateTransparentMaterial(Texture2D texture)
+        {
+            Shader shader = Shader.Find("Unlit/Transparent");
+            if (shader == null) shader = Shader.Find("Sprites/Default");
+            Material material = new Material(shader);
+            material.mainTexture = texture;
+            return material;
         }
 
         private void CreateRock(Vector3 position, Vector3 scale)

@@ -42,7 +42,7 @@
 
 ## Play the starter island
 
-Open `Assets/Scenes/StarterIsland.unity` and press **Play**. The scene is also registered as the build entry point. It creates a tropical island, a controllable Tide Warden, a pursuing Crimson Raider, camera, HUD, and a two-hit combat loop without requiring manual prefab setup. See [`Docs/PLAYABLE_SLICE.md`](Docs/PLAYABLE_SLICE.md) for the exact controls and a replacement path from prototype primitives to final game assets.
+Open `Assets/Scenes/StarterIsland.unity` and press **Play**. The scene is also registered as the build entry point. It creates a tropical island, a controllable Tide Warden, a pursuing Crimson Raider, camera, HUD, and a two-hit combat loop without requiring manual prefab setup. The first original character and environment texture pass is integrated into this scene; see [`Docs/ART_PASS.md`](Docs/ART_PASS.md). See [`Docs/PLAYABLE_SLICE.md`](Docs/PLAYABLE_SLICE.md) for the exact controls and a replacement path from prototype primitives to final game assets.
 
 ## Open the project
 
@@ -99,6 +99,7 @@ The included `.inputactions` file gives keyboard and initial gamepad bindings. C
 | Player FSM and movement | `Assets/Scripts/Player/PlayerController.cs`, `PlayerState.cs`, `PlayerStateMachine.cs`, `PlayerStates.cs` |
 | Combat, combo buffer, hitboxes, hit-stop | `Assets/Scripts/Combat/CombatSystem.cs`, `ComboManager.cs`, `Hitbox.cs`, `Combatant.cs`, `Assets/Scripts/Data/AttackDefinition.cs` |
 | Starter island vertical slice | `Assets/Scenes/StarterIsland.unity`, `Assets/Scripts/Core/PrototypeSceneBootstrap.cs`, `Docs/PLAYABLE_SLICE.md` |
+| Visual art pass | `Assets/Resources/Art/`, `Assets/Art/Concepts/`, `Docs/ART_PASS.md` |
 | Island streaming | `Assets/Scripts/World/IslandManager.cs`, `Assets/Scripts/Data/WorldAndQuestDefinitions.cs` |
 | Narrative and quests | `Assets/Scripts/Quest/QuestManager.cs`, `Assets/Scripts/Data/WorldAndQuestDefinitions.cs` |
 | Input and camera | `Assets/Scripts/Input/PlayerInputReader.cs`, `Assets/Scripts/Camera/AdventureCameraDirector.cs` |
